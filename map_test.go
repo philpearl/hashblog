@@ -80,7 +80,7 @@ func TestOverwrite(t *testing.T) {
 }
 
 func BenchmarkSet(b *testing.B) {
-	for _, size := range []int{10, 100, 1000, 2000, 4000, 8000, 16000} {
+	for _, size := range []int{10, 100, 1000, 2000, 4000, 8000, 16000, simpleTableSize} {
 		keys := make([]string, size)
 		for i := range keys {
 			keys[i] = strconv.Itoa(i)
