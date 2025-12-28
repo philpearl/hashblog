@@ -1,9 +1,11 @@
-package hashblog
+package hashblog_test
 
 import (
 	"fmt"
 	"strconv"
 	"testing"
+
+	"github.com/philpearl/hashblog"
 )
 
 type mapper interface {
@@ -13,11 +15,11 @@ type mapper interface {
 
 func TestGetMissing(t *testing.T) {
 	for _, m := range []mapper{
-		NewSimpleTable[string, int](),
-		NewSimpleTableProbe[string, int](),
-		NewGroupTable[string, int](),
-		NewGroupTableCtrl[string, int](),
-		NewSwissTable[string, int](),
+		hashblog.NewSimpleTable[string, int](),
+		hashblog.NewSimpleTableProbe[string, int](),
+		hashblog.NewGroupTable[string, int](),
+		hashblog.NewGroupTableCtrl[string, int](),
+		hashblog.NewSwissTable[string, int](),
 	} {
 		t.Run(fmt.Sprintf("%T", m), func(t *testing.T) {
 			if _, ok := m.Get("missing"); ok {
@@ -34,11 +36,11 @@ func TestGetMissing(t *testing.T) {
 
 func TestGetPresent(t *testing.T) {
 	for _, m := range []mapper{
-		NewSimpleTable[string, int](),
-		NewSimpleTableProbe[string, int](),
-		NewGroupTable[string, int](),
-		NewGroupTableCtrl[string, int](),
-		NewSwissTable[string, int](),
+		hashblog.NewSimpleTable[string, int](),
+		hashblog.NewSimpleTableProbe[string, int](),
+		hashblog.NewGroupTable[string, int](),
+		hashblog.NewGroupTableCtrl[string, int](),
+		hashblog.NewSwissTable[string, int](),
 	} {
 		t.Run(fmt.Sprintf("%T", m), func(t *testing.T) {
 			m.Set("present", 42)
@@ -57,11 +59,11 @@ func TestGetPresent(t *testing.T) {
 
 func TestOverwrite(t *testing.T) {
 	for _, m := range []mapper{
-		NewSimpleTable[string, int](),
-		NewSimpleTableProbe[string, int](),
-		NewGroupTable[string, int](),
-		NewGroupTableCtrl[string, int](),
-		NewSwissTable[string, int](),
+		hashblog.NewSimpleTable[string, int](),
+		hashblog.NewSimpleTableProbe[string, int](),
+		hashblog.NewGroupTable[string, int](),
+		hashblog.NewGroupTableCtrl[string, int](),
+		hashblog.NewSwissTable[string, int](),
 	} {
 		t.Run(fmt.Sprintf("%T", m), func(t *testing.T) {
 			m.Set("key", 1)
@@ -80,7 +82,7 @@ func TestOverwrite(t *testing.T) {
 }
 
 func BenchmarkSet(b *testing.B) {
-	for _, size := range []int{10, 100, 1000, 2000, 4000, 8000, 16000, simpleTableSize} {
+	for _, size := range []int{10, 100, 1000, 2000, 4000, 8000, 16000, 24000, 32768} {
 		keys := make([]string, size)
 		for i := range keys {
 			keys[i] = strconv.Itoa(i)
@@ -88,7 +90,7 @@ func BenchmarkSet(b *testing.B) {
 
 		b.Run(strconv.Itoa(size), func(b *testing.B) {
 			b.Run("SimpleTable", func(b *testing.B) {
-				m := NewSimpleTable[string, int]()
+				m := hashblog.NewSimpleTable[string, int]()
 				b.ReportAllocs()
 				b.ResetTimer()
 				for b.Loop() {
@@ -96,9 +98,10 @@ func BenchmarkSet(b *testing.B) {
 						m.Set(key, i)
 					}
 				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
 			})
 			b.Run("SimpleTableProbe", func(b *testing.B) {
-				m := NewSimpleTableProbe[string, int]()
+				m := hashblog.NewSimpleTableProbe[string, int]()
 				b.ReportAllocs()
 				b.ResetTimer()
 				for b.Loop() {
@@ -106,9 +109,10 @@ func BenchmarkSet(b *testing.B) {
 						m.Set(key, i)
 					}
 				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
 			})
 			b.Run("GroupTable", func(b *testing.B) {
-				m := NewGroupTable[string, int]()
+				m := hashblog.NewGroupTable[string, int]()
 				b.ReportAllocs()
 				b.ResetTimer()
 				for b.Loop() {
@@ -116,9 +120,10 @@ func BenchmarkSet(b *testing.B) {
 						m.Set(key, i)
 					}
 				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
 			})
 			b.Run("GroupTableCtrl", func(b *testing.B) {
-				m := NewGroupTableCtrl[string, int]()
+				m := hashblog.NewGroupTableCtrl[string, int]()
 				b.ReportAllocs()
 				b.ResetTimer()
 				for b.Loop() {
@@ -126,9 +131,10 @@ func BenchmarkSet(b *testing.B) {
 						m.Set(key, i)
 					}
 				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
 			})
 			b.Run("Swiss", func(b *testing.B) {
-				m := NewSwissTable[string, int]()
+				m := hashblog.NewSwissTable[string, int]()
 				b.ReportAllocs()
 				b.ResetTimer()
 				for b.Loop() {
@@ -136,9 +142,10 @@ func BenchmarkSet(b *testing.B) {
 						m.Set(key, i)
 					}
 				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
 			})
 			b.Run("map", func(b *testing.B) {
-				m := make(map[string]int, simpleTableSize)
+				m := make(map[string]int, 32768)
 				b.ReportAllocs()
 				b.ResetTimer()
 				for b.Loop() {
@@ -146,6 +153,7 @@ func BenchmarkSet(b *testing.B) {
 						m[key] = i
 					}
 				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
 			})
 		})
 	}

@@ -2,8 +2,15 @@ package hashblog
 
 const groupTableSize = simpleTableSize / groupSize
 
+// GroupTable is a hash table implementation using grouping without control
+// bytes. Each group contains multiple entries, and probing is done at the group
+// level.
+//
+// This potentially improves cache locality compared to probing each entry
+// individually, but more likely is worse than a simpler implementation, and is
+// only a stepping stone to a full swiss table.
 type GroupTable[K comparable, V any] struct {
-	groups [groupTableSize]Group[K, V]
+	groups [groupTableSize]group[K, V]
 }
 
 func NewGroupTable[K comparable, V any]() *GroupTable[K, V] {
@@ -15,13 +22,12 @@ func (m *GroupTable[K, V]) Set(key K, value V) {
 	*ent = entry[K, V]{key: key, value: value}
 }
 
-func (m *GroupTable[K, V]) Get(key K) (V, bool) {
+func (m *GroupTable[K, V]) Get(key K) (v V, ok bool) {
 	ent, ok := m.find(key)
 	if ok {
 		return ent.value, true
 	}
-	var zero V
-	return zero, false
+	return v, false
 }
 
 func (m *GroupTable[K, V]) find(key K) (*entry[K, V], bool) {
@@ -50,4 +56,4 @@ func (m *GroupTable[K, V]) find(key K) (*entry[K, V], bool) {
 
 const groupSize = 8
 
-type Group[K comparable, V any] [groupSize]entry[K, V]
+type group[K comparable, V any] [groupSize]entry[K, V]

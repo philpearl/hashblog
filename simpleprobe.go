@@ -1,5 +1,7 @@
 package hashblog
 
+// SimpleTableProbe is a simple hash table implementation using
+// open addressing with quadratic probing.
 type SimpleTableProbe[K comparable, V any] struct {
 	entries [simpleTableSize]entry[K, V]
 }
@@ -13,13 +15,12 @@ func (st *SimpleTableProbe[K, V]) Set(key K, value V) {
 	*ent = entry[K, V]{key: key, value: value}
 }
 
-func (st *SimpleTableProbe[K, V]) Get(key K) (V, bool) {
+func (st *SimpleTableProbe[K, V]) Get(key K) (v V, ok bool) {
 	ent, ok := st.find(key)
 	if ok {
 		return ent.value, true
 	}
-	var zero V
-	return zero, false
+	return v, false
 }
 
 func (st *SimpleTableProbe[K, V]) find(key K) (*entry[K, V], bool) {
@@ -52,6 +53,11 @@ func makeProbeSeq(hash, mask hashValue) probeSeq {
 	}
 }
 
+// next advances the probe sequence to the next offset.
+//
+// Steps increase by 1 each time, so the sequence is:
+//
+//	h, h+1, h+3, h+6, h+10, ..., all modulo the table size.
 func (s probeSeq) next() probeSeq {
 	s.index++
 	s.offset = (s.offset + s.index) & s.mask

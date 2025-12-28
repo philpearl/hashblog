@@ -1,5 +1,15 @@
 package hashblog
 
+// GroupTableCtrl is a hash table implementation using group-based storage with
+// control bytes. The control bytes should improve lookup speed by reducing the
+// number of key comparisons needed during probing. But they also add
+// complexity.
+//
+// This is a stepping stone to a full swiss table implementation.
+//
+// Note for this implementation I've removed the "find" function and moved that
+// code into the Set and Get methods. This is because we need to update the
+// control bytes as well as the entries.
 type GroupTableCtrl[K comparable, V any] struct {
 	groups [groupTableSize]groupWithCtrl[K, V]
 }
@@ -7,6 +17,9 @@ type GroupTableCtrl[K comparable, V any] struct {
 func NewGroupTableCtrl[K comparable, V any]() *GroupTableCtrl[K, V] {
 	m := &GroupTableCtrl[K, V]{}
 	for i := range m.groups {
+		// There's a control byte per entry in the group. The top bit indicates
+		// whether the slot is empty. It's set to 1 when empty. The rest of the
+		// byte is used to store the bottom 7 bits of the hash of the key.
 		m.groups[i].ctrl = groupCtrl{0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80}
 	}
 	return m
@@ -15,6 +28,12 @@ func NewGroupTableCtrl[K comparable, V any]() *GroupTableCtrl[K, V] {
 func (m *GroupTableCtrl[K, V]) Set(key K, value V) {
 	h := hash(key)
 
+	// h1 is the control byte value (bottom 7 bits of hash, top bit clear to
+	// indicate the slot in the group is in use).
+	//
+	// h2 is used for probing at the group level. We don't use the bottom 7 bits
+	// of the hash so that entries with the same h1 are more likely to be in
+	// different groups.
 	h1 := byte(h & 0x7F)
 	h2 := (h >> 7)
 
@@ -64,22 +83,6 @@ func (m *GroupTableCtrl[K, V]) Get(key K) (v V, ok bool) {
 			}
 		}
 	}
-}
-
-type groupLocation[K comparable, V any] struct {
-	groups *[groupTableSize]groupWithCtrl[K, V]
-	index  hashValue
-	slot   int
-	h1     byte
-}
-
-func (g groupLocation[K, V]) set(k K, v V) {
-	g.groups[g.index].ctrl[g.slot] = g.h1
-	g.groups[g.index].entries[g.slot] = entry[K, V]{key: k, value: v}
-}
-
-func (g groupLocation[K, V]) get() V {
-	return g.groups[g.index].entries[g.slot].value
 }
 
 type groupWithCtrl[K comparable, V any] struct {
