@@ -42,10 +42,6 @@ func (m *GroupTable[K, V]) find(key K) (*entry[K, V], bool) {
 			if e.key == key {
 				return e, true
 			}
-		}
-		// Check for empty slot in group
-		for i := range g {
-			e := &g[i]
 			if e.key == zero {
 				// Empty slot - this means the key is not present in the table
 				return e, false

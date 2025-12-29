@@ -40,24 +40,19 @@ func (m *GroupTableCtrl[K, V]) Set(key K, value V) {
 	for seq := makeProbeSeq(h2, hashValue(groupTableSize-1)); ; seq = seq.next() {
 		g := &m.groups[seq.offset]
 		// Is the key in this group?
-		for i := range g.ctrl {
-			if g.ctrl[i] != h1 {
-				continue
-			}
-			if e := &g.entries[i]; e.key == key {
-				e.value = value
+		for i, ctrl := range g.ctrl {
+			switch ctrl {
+			case h1:
+				if e := &g.entries[i]; e.key == key {
+					e.value = value
+					return
+				}
+			case 0x80:
+				// Empty slot - this means the key is not present in the table
+				g.ctrl[i] = h1
+				g.entries[i] = entry[K, V]{key: key, value: value}
 				return
 			}
-		}
-		// Check for empty slot in group
-		for i := range g.ctrl {
-			if g.ctrl[i] != 0x80 {
-				continue
-			}
-			// Empty slot - this means the key is not present in the table
-			g.ctrl[i] = h1
-			g.entries[i] = entry[K, V]{key: key, value: value}
-			return
 		}
 	}
 }
@@ -76,7 +71,7 @@ func (m *GroupTableCtrl[K, V]) Get(key K) (v V, ok bool) {
 			if ctrl == 0x80 {
 				return v, false
 			}
-			if g.ctrl[i] == h1 {
+			if ctrl == h1 {
 				if e := &g.entries[i]; e.key == key {
 					return e.value, true
 				}

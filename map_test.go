@@ -88,8 +88,8 @@ func BenchmarkSet(b *testing.B) {
 			keys[i] = strconv.Itoa(i)
 		}
 
-		b.Run(strconv.Itoa(size), func(b *testing.B) {
-			b.Run("SimpleTable", func(b *testing.B) {
+		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
+			b.Run("i=SimpleTable", func(b *testing.B) {
 				m := hashblog.NewSimpleTable[string, int]()
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -100,7 +100,7 @@ func BenchmarkSet(b *testing.B) {
 				}
 				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
 			})
-			b.Run("SimpleTableProbe", func(b *testing.B) {
+			b.Run("i=SimpleTableProbe", func(b *testing.B) {
 				m := hashblog.NewSimpleTableProbe[string, int]()
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -111,7 +111,7 @@ func BenchmarkSet(b *testing.B) {
 				}
 				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
 			})
-			b.Run("GroupTable", func(b *testing.B) {
+			b.Run("i=GroupTable", func(b *testing.B) {
 				m := hashblog.NewGroupTable[string, int]()
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -122,7 +122,7 @@ func BenchmarkSet(b *testing.B) {
 				}
 				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
 			})
-			b.Run("GroupTableCtrl", func(b *testing.B) {
+			b.Run("i=GroupTableCtrl", func(b *testing.B) {
 				m := hashblog.NewGroupTableCtrl[string, int]()
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -133,7 +133,7 @@ func BenchmarkSet(b *testing.B) {
 				}
 				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
 			})
-			b.Run("Swiss", func(b *testing.B) {
+			b.Run("i=Swiss", func(b *testing.B) {
 				m := hashblog.NewSwissTable[string, int]()
 				b.ReportAllocs()
 				b.ResetTimer()
@@ -144,7 +144,7 @@ func BenchmarkSet(b *testing.B) {
 				}
 				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
 			})
-			b.Run("map", func(b *testing.B) {
+			b.Run("i=map", func(b *testing.B) {
 				m := make(map[string]int, 32768)
 				b.ReportAllocs()
 				b.ResetTimer()
