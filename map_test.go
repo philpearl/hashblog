@@ -20,6 +20,8 @@ func TestGetMissing(t *testing.T) {
 		hashblog.NewGroupTable[string, int](),
 		hashblog.NewGroupTableCtrl[string, int](),
 		hashblog.NewSwissTable[string, int](),
+		hashblog.NewSwissConcrete(),
+		hashblog.NewDoubleSwiss(),
 	} {
 		t.Run(fmt.Sprintf("%T", m), func(t *testing.T) {
 			if _, ok := m.Get("missing"); ok {
@@ -41,6 +43,8 @@ func TestGetPresent(t *testing.T) {
 		hashblog.NewGroupTable[string, int](),
 		hashblog.NewGroupTableCtrl[string, int](),
 		hashblog.NewSwissTable[string, int](),
+		hashblog.NewSwissConcrete(),
+		hashblog.NewDoubleSwiss(),
 	} {
 		t.Run(fmt.Sprintf("%T", m), func(t *testing.T) {
 			m.Set("present", 42)
@@ -64,6 +68,8 @@ func TestOverwrite(t *testing.T) {
 		hashblog.NewGroupTable[string, int](),
 		hashblog.NewGroupTableCtrl[string, int](),
 		hashblog.NewSwissTable[string, int](),
+		hashblog.NewSwissConcrete(),
+		hashblog.NewDoubleSwiss(),
 	} {
 		t.Run(fmt.Sprintf("%T", m), func(t *testing.T) {
 			m.Set("key", 1)
@@ -144,6 +150,29 @@ func BenchmarkSet(b *testing.B) {
 				}
 				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
 			})
+			b.Run("i=SwissConcrete", func(b *testing.B) {
+				m := hashblog.NewSwissConcrete()
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for i, key := range keys {
+						m.Set(key, i)
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=DoubleSwiss", func(b *testing.B) {
+				m := hashblog.NewDoubleSwiss()
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for i, key := range keys {
+						m.Set(key, i)
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+
 			b.Run("i=map", func(b *testing.B) {
 				m := make(map[string]int, 32768)
 				b.ReportAllocs()
@@ -151,6 +180,288 @@ func BenchmarkSet(b *testing.B) {
 				for b.Loop() {
 					for i, key := range keys {
 						m[key] = i
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+		})
+	}
+}
+
+func BenchmarkGet(b *testing.B) {
+	for _, size := range []int{10, 100, 1000, 2000, 4000, 8000, 16000, 24000, 32768} {
+		keys := make([]string, size)
+		for i := range keys {
+			keys[i] = strconv.Itoa(i)
+		}
+
+		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
+			b.Run("i=SimpleTable", func(b *testing.B) {
+				m := hashblog.NewSimpleTable[string, int]()
+				for i, key := range keys {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for i, key := range keys {
+						if val, ok := m.Get(key); !ok || val != i {
+							b.Fatalf("expected key %s to have value %d, got %d", key, i, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=SimpleTableProbe", func(b *testing.B) {
+				m := hashblog.NewSimpleTableProbe[string, int]()
+				for i, key := range keys {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for i, key := range keys {
+						if val, ok := m.Get(key); !ok || val != i {
+							b.Fatalf("expected key %s to have value %d, got %d", key, i, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=GroupTable", func(b *testing.B) {
+				m := hashblog.NewGroupTable[string, int]()
+				for i, key := range keys {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for i, key := range keys {
+						if val, ok := m.Get(key); !ok || val != i {
+							b.Fatalf("expected key %s to have value %d, got %d", key, i, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=GroupTableCtrl", func(b *testing.B) {
+				m := hashblog.NewGroupTableCtrl[string, int]()
+				for i, key := range keys {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for i, key := range keys {
+						if val, ok := m.Get(key); !ok || val != i {
+							b.Fatalf("expected key %s to have value %d, got %d", key, i, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=Swiss", func(b *testing.B) {
+				m := hashblog.NewSwissTable[string, int]()
+				for i, key := range keys {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for i, key := range keys {
+						if val, ok := m.Get(key); !ok || val != i {
+							b.Fatalf("expected key %s to have value %d, got %d", key, i, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=SwissConcrete", func(b *testing.B) {
+				m := hashblog.NewSwissConcrete()
+				for i, key := range keys {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for i, key := range keys {
+						if val, ok := m.Get(key); !ok || val != i {
+							b.Fatalf("expected key %s to have value %d, got %d", key, i, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=DoubleSwiss", func(b *testing.B) {
+				m := hashblog.NewDoubleSwiss()
+				for i, key := range keys {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for i, key := range keys {
+						if val, ok := m.Get(key); !ok || val != i {
+							b.Fatalf("expected key %s to have value %d, got %d", key, i, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+
+			b.Run("i=map", func(b *testing.B) {
+				m := make(map[string]int, 32768)
+				for i, key := range keys {
+					m[key] = i
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for i, key := range keys {
+						if val, ok := m[key]; !ok || val != i {
+							b.Fatalf("expected key %s to have value %d, got %d", key, i, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+		})
+	}
+}
+
+func BenchmarkMiss(b *testing.B) {
+	for _, size := range []int{10, 100, 1000, 2000, 4000, 8000, 16000, 24000} {
+		keys := make([]string, size*2)
+		for i := range keys {
+			keys[i] = strconv.Itoa(i)
+		}
+
+		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
+			b.Run("i=SimpleTable", func(b *testing.B) {
+				m := hashblog.NewSimpleTable[string, int]()
+				for i, key := range keys[:size] {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for _, key := range keys[size:] {
+						if val, ok := m.Get(key); ok {
+							b.Fatalf("expected key %s to be missing, got value %d", key, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=SimpleTableProbe", func(b *testing.B) {
+				m := hashblog.NewSimpleTableProbe[string, int]()
+				for i, key := range keys[:size] {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for _, key := range keys[size:] {
+						if val, ok := m.Get(key); ok {
+							b.Fatalf("expected key %s to be missing, got value %d", key, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=GroupTable", func(b *testing.B) {
+				m := hashblog.NewGroupTable[string, int]()
+				for i, key := range keys[:size] {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for _, key := range keys[size:] {
+						if val, ok := m.Get(key); ok {
+							b.Fatalf("expected key %s to be missing, got value %d", key, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=GroupTableCtrl", func(b *testing.B) {
+				m := hashblog.NewGroupTableCtrl[string, int]()
+				for i, key := range keys[:size] {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for _, key := range keys[size:] {
+						if val, ok := m.Get(key); ok {
+							b.Fatalf("expected key %s to be missing, got value %d", key, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=Swiss", func(b *testing.B) {
+				m := hashblog.NewSwissTable[string, int]()
+				for i, key := range keys[:size] {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for _, key := range keys[size:] {
+						if val, ok := m.Get(key); ok {
+							b.Fatalf("expected key %s to be missing, got value %d", key, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=SwissConcrete", func(b *testing.B) {
+				m := hashblog.NewSwissConcrete()
+				for i, key := range keys[:size] {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for _, key := range keys[size:] {
+						if val, ok := m.Get(key); ok {
+							b.Fatalf("expected key %s to be missing, got value %d", key, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+			b.Run("i=DoubleSwiss", func(b *testing.B) {
+				m := hashblog.NewDoubleSwiss()
+				for i, key := range keys[:size] {
+					m.Set(key, i)
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for _, key := range keys[size:] {
+						if val, ok := m.Get(key); ok {
+							b.Fatalf("expected key %s to be missing, got value %d", key, val)
+						}
+					}
+				}
+				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
+			})
+
+			b.Run("i=map", func(b *testing.B) {
+				m := make(map[string]int, 32768)
+				for i, key := range keys[:size] {
+					m[key] = i
+				}
+				b.ReportAllocs()
+				b.ResetTimer()
+				for b.Loop() {
+					for _, key := range keys[size:] {
+						if val, ok := m[key]; ok {
+							b.Fatalf("expected key %s to be missing, got value %d", key, val)
+						}
 					}
 				}
 				b.ReportMetric(float64(b.Elapsed().Nanoseconds())/float64(b.N)/float64(size), "ns/op")
